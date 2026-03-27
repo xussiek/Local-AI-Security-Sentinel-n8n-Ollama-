@@ -1,0 +1,323 @@
+{
+  "name": "Local-AI-Security-Sentinel-n8n-Ollama",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -672,
+        48
+      ],
+      "id": "471cd2cb-7ccf-4645-8d95-c965984ff8f7",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Używamy $json, aby dobrać się do danych z bieżącego elementu\nconst cleanContent = $json.contentSnippet\n  .replace(/Poznań:.*|ZDALNIE:.*|Kraków:.*|Warszawa:.*|zarejestruj się na to szkolenie/g, '')\n  .replace(/Wpisz adres e-mail:.*|Bez obaw.*|RODO.*/gs, '')\n  .replace(/niebezpiecznik/gi, '')\n  .replace(/niebezpiecznik/gi, '')\n  .trim();\n\nreturn {\n  title: $json.title,\n  link: $json.link,\n  date: $json.pubDate,\n  text_to_summarize: cleanContent\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        256,
+        0
+      ],
+      "id": "3c0277df-1ecb-4b4c-a583-0ca92f64e6ee",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=\"Jesteś asystentem. Podsumuj poniższy artykuł w trzech zdaniach po polsku, nadaj mu tytuł, oraz ocen w skali 1-10 jak wazny jest ten artykół . Artykuł: {{ $json.text_to_summarize }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        704,
+        16
+      ],
+      "id": "9689dd96-6e4a-4433-8644-6c24cc56a575",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "mistral:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        432,
+        208
+      ],
+      "id": "5f9e1b4a-d147-4795-92b5-39a5180ba557",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "Kv9y12qWtrVxzSW6",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "text"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        576,
+        208
+      ],
+      "id": "f5f59055-84cf-4da8-8eea-11ad47714177",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "={{ $json.output }}",
+        "options": {},
+        "embeds": {
+          "values": []
+        },
+        "files": {
+          "values": []
+        }
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        1008,
+        32
+      ],
+      "id": "8130b931-a638-4cb0-a517-e90c03e26e4b",
+      "name": "Discord",
+      "webhookId": "52d63eb9-cc27-4098-ad57-0d9f3b3386ab",
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "c8WYXU9yt0fPVnux",
+          "name": "Discord Webhook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        64,
+        -16
+      ],
+      "id": "56451b76-125f-4b61-be3a-b5758f054c77",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "url": "https://niebezpiecznik.pl/feed/",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        -256,
+        -80
+      ],
+      "id": "7ae67e2d-0cf1-4a8f-a78d-b6a0b365a9fb",
+      "name": "niebezpiecznik"
+    },
+    {
+      "parameters": {
+        "url": "https://zaufanatrzeciastrona.pl/feed/",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        -256,
+        48
+      ],
+      "id": "4a883f70-d03b-418a-a164-2f0918e4aeeb",
+      "name": "zaufanatrzeciastrona"
+    },
+    {
+      "parameters": {
+        "url": "https://feeds.feedburner.com/TheHackersNews",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        -256,
+        208
+      ],
+      "id": "9d4be89e-cf5a-4337-b672-dd0b35960eb1",
+      "name": "feedburner"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        432,
+        0
+      ],
+      "id": "23431afb-e372-479b-9ea4-8cfea993b945",
+      "name": "Loop Over Items"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "niebezpiecznik",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "feedburner",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "zaufanatrzeciastrona",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Discord",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "niebezpiecznik": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "zaufanatrzeciastrona": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "feedburner": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Discord": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "20b9d30d-fff5-48e7-83d3-5ec92758e752",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f3085852edcc915b2a372176e2d6971b0bf5fb378b0b8beca4573ce186f4e704"
+  },
+  "id": "juCUCWlIJihHvJns",
+  "tags": []
+}
